@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinTrack — Finance Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- html2canvas for PNG export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LAYOUT
+═══════════════════════════════════════════════════════════ -->
+<div class="app-layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">₿</div>
+      <div class="logo-text">FinTrack<span>Finance Manager</span></div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+
+      <a class="nav-item active" data-page="add">
+        <span class="nav-icon">➕</span> Add Record
+      </a>
+      <a class="nav-item" data-page="monthly">
+        <span class="nav-icon">📅</span> Monthly Dashboard
+      </a>
+      <a class="nav-item" data-page="yearly">
+        <span class="nav-icon">📊</span> Yearly Overview
+      </a>
+      <a class="nav-item" data-page="records">
+        <span class="nav-icon">🗂️</span> All Records
+      </a>
+
+      <div class="nav-section-label" style="margin-top:8px">Settings</div>
+      <a class="nav-item" data-page="setup">
+        <span class="nav-icon">⚙️</span> Setup Guide
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="dark-toggle" id="dark-toggle">
+        <div class="toggle-switch"></div>
+        <span>Dark Mode</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar mobile overlay -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- ── Main Content ─────────────────────────────────────── -->
+  <div class="main-content">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger btn" id="hamburger">☰</button>
+        <div class="topbar-title">Fin<span>Track</span></div>
+      </div>
+      <div class="topbar-actions">
+        <span style="font-size:.78rem;color:var(--text-muted);font-weight:300" id="records-count"></span>
+      </div>
+    </header>
+
+    <!-- ════════════════════════════════════════════════════
+         PAGE: ADD RECORD
+    ════════════════════════════════════════════════════ -->
+    <section class="page active" id="page-add">
+
+      <!-- Config banner (hidden by default, shown in demo mode) -->
+      <div class="config-banner" style="display:none">
+        ⚠️ <strong>Demo Mode</strong> — Data is not saved to Google Sheets.
+        Set your <code>APPS_SCRIPT_URL</code> in <code>script.js</code> to connect.
+        See the <strong>Setup Guide</strong> page for instructions.
+      </div>
+
+      <div class="page-header">
+        <h1 id="form-heading">Add New Record</h1>
+        <p>Track your income and expenses across categories</p>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <form id="record-form" autocomplete="off">
+            <div class="form-grid">
+
+              <!-- Date -->
+              <div class="form-group">
+                <label class="form-label">📅 Date</label>
+                <input type="date" id="f-date" class="form-input" required>
+              </div>
+
+              <!-- Category -->
+              <div class="form-group">
+                <label class="form-label">🏷️ Category</label>
+                <select id="f-category" class="form-select" required>
+                  <option value="ZEPETO">ZEPETO</option>
+                  <option value="ROBLOX">ROBLOX</option>
+                  <option value="BLOCK & DECO">BLOCK &amp; DECO</option>
+                  <option value="ETC">ETC</option>
+                </select>
+              </div>
+
+              <!-- Income -->
+              <div class="form-group">
+                <label class="form-label">💰 Income (฿)</label>
+                <input type="number" id="f-income" class="form-input"
+                  placeholder="0.00" min="0" step="0.01">
+              </div>
+
+              <!-- Expense -->
+              <div class="form-group">
+                <label class="form-label">💸 Expense (฿)</label>
+                <input type="number" id="f-expense" class="form-input"
+                  placeholder="0.00" min="0" step="0.01">
+              </div>
+
+              <!-- Profit preview -->
+              <div class="form-group form-full">
+                <label class="form-label">📈 Profit Preview</label>
+                <div class="profit-display">
+                  <span>Calculated Profit</span>
+                  <span class="profit-value pos" id="profit-preview">฿0.00</span>
+                </div>
+              </div>
+
+              <!-- Note -->
+              <div class="form-group form-full">
+                <label class="form-label">📝 Note <span style="font-weight:300;text-transform:none">(optional)</span></label>
+                <textarea id="f-note" class="form-textarea" placeholder="Add a note..."></textarea>
+              </div>
+
+              <!-- Actions -->
+              <div class="form-full" style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-edit"
+                  style="display:none" onclick="cancelEdit()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="form-submit-btn">
+                  💾 Save Record
+                </button>
+              </div>
+
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Quick stats below form -->
+      <div class="stat-grid">
+        <div class="stat-card income">
+          <div class="stat-card-label">Today's Income</div>
+          <div class="stat-card-value" id="today-income">฿0.00</div>
+          <div class="stat-card-sub">All categories</div>
+          <span class="stat-icon">💰</span>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-card-label">Today's Expense</div>
+          <div class="stat-card-value" id="today-expense">฿0.00</div>
+          <div class="stat-card-sub">All categories</div>
+          <span class="stat-icon">💸</span>
+        </div>
+        <div class="stat-card profit">
+          <div class="stat-card-label">Today's Profit</div>
+          <div class="stat-card-value" id="today-profit">฿0.00</div>
+          <div class="stat-card-sub">Net result</div>
+          <span class="stat-icon">📈</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════════════════
+         PAGE: MONTHLY DASHBOARD
+    ════════════════════════════════════════════════════ -->
+    <section class="page" id="page-monthly">
+      <div class="page-header">
+        <h1>Monthly Dashboard</h1>
+        <p>Analyze performance month by month</p>
+      </div>
+
+      <!-- Month Tabs -->
+      <div class="month-tabs" id="month-tabs"></div>
+
+      <!-- Stat Cards -->
+      <div class="stat-grid">
+        <div class="stat-card income">
+          <div class="stat-card-label">Total Income — <span id="dash-month"></span></div>
+          <div class="stat-card-value" id="dash-income">฿0.00</div>
+          <span class="stat-icon">💰</span>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-card-label">Total Expense</div>
+          <div class="stat-card-value" id="dash-expense">฿0.00</div>
+          <span class="stat-icon">💸</span>
+        </div>
+        <div class="stat-card profit">
+          <div class="stat-card-label">Net Profit</div>
+          <div class="stat-card-value" id="dash-profit">฿0.00</div>
+          <span class="stat-icon">📈</span>
+        </div>
+      </div>
+
+      <!-- Chart + Ranking -->
+      <div class="two-col">
+
+        <!-- Chart card -->
+        <div class="card">
+          <div class="card-body">
+            <div class="section-title">Category Chart</div>
+            <div class="chart-controls">
+              <!-- Chart type -->
+              <button class="chart-type-btn month-chart-type-btn active" data-type="bar"
+                onclick="setMonthChartType('bar')">📊 Bar</button>
+              <button class="chart-type-btn month-chart-type-btn" data-type="pie"
+                onclick="setMonthChartType('pie')">🥧 Pie</button>
+
+              <!-- Metric -->
+              <button class="chart-type-btn month-metric-btn active" data-metric="profit"
+                onclick="setMonthMetric('profit')">Profit</button>
+              <button class="chart-type-btn month-metric-btn" data-metric="income"
+                onclick="setMonthMetric('income')">Income</button>
+              <button class="chart-type-btn month-metric-btn" data-metric="expense"
+                onclick="setMonthMetric('expense')">Expense</button>
+
+              <button class="btn btn-sm btn-secondary" onclick="exportPNG('month-chart','monthly-chart')">
+                📷 Export
+              </button>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="month-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ranking card -->
+        <div class="card">
+          <div class="card-body">
+            <div class="section-title">Profit Ranking</div>
+            <div id="month-ranking"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════
+         PAGE: YEARLY OVERVIEW
+    ════════════════════════════════════════════════════ -->
+    <section class="page" id="page-yearly">
+      <div class="page-header">
+        <h1>Yearly Overview</h1>
+        <p>Full 12-month performance across all categories</p>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="stat-grid">
+        <div class="stat-card income">
+          <div class="stat-card-label">Total Year Income</div>
+          <div class="stat-card-value" id="year-income">฿0.00</div>
+          <span class="stat-icon">💰</span>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-card-label">Total Year Expense</div>
+          <div class="stat-card-value" id="year-expense">฿0.00</div>
+          <span class="stat-icon">💸</span>
+        </div>
+        <div class="stat-card profit">
+          <div class="stat-card-label">Net Year Profit</div>
+          <div class="stat-card-value" id="year-profit">฿0.00</div>
+          <span class="stat-icon">📈</span>
+        </div>
+      </div>
+
+      <div class="two-col">
+
+        <!-- Chart card -->
+        <div class="card">
+          <div class="card-body">
+            <div class="section-title">Annual Category Chart</div>
+            <div class="chart-controls">
+              <button class="chart-type-btn year-chart-type-btn active" data-type="bar"
+                onclick="setYearChartType('bar')">📊 Bar</button>
+              <button class="chart-type-btn year-chart-type-btn" data-type="pie"
+                onclick="setYearChartType('pie')">🥧 Pie</button>
+
+              <button class="chart-type-btn year-metric-btn active" data-metric="profit"
+                onclick="setYearMetric('profit')">Profit</button>
+              <button class="chart-type-btn year-metric-btn" data-metric="income"
+                onclick="setYearMetric('income')">Income</button>
+              <button class="chart-type-btn year-metric-btn" data-metric="expense"
+                onclick="setYearMetric('expense')">Expense</button>
+
+              <button class="btn btn-sm btn-secondary" onclick="exportPNG('year-chart','yearly-chart')">
+                📷 Export
+              </button>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="year-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ranking -->
+        <div class="card">
+          <div class="card-body">
+            <div class="section-title">Annual Profit Ranking</div>
+            <div id="year-ranking"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════
+         PAGE: ALL RECORDS
+    ════════════════════════════════════════════════════ -->
+    <section class="page" id="page-records">
+      <div class="page-header">
+        <h1>All Records</h1>
+        <p>View, search, edit, and delete all financial records</p>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+
+          <!-- Filter bar -->
+          <div class="table-controls" style="margin-bottom:18px">
+            <input type="text" class="form-input" placeholder="🔍 Search..."
+              oninput="onRecordsSearch(event)" style="max-width:200px">
+
+            <select class="form-select" onchange="onCatFilter(event)" style="max-width:180px">
+              <option value="">All Categories</option>
+              <option value="ZEPETO">ZEPETO</option>
+              <option value="ROBLOX">ROBLOX</option>
+              <option value="BLOCK & DECO">BLOCK &amp; DECO</option>
+              <option value="ETC">ETC</option>
+            </select>
+
+            <select class="form-select" onchange="onMonthFilter(event)" style="max-width:160px">
+              <option value="">All Months</option>
+              <option>January</option><option>February</option><option>March</option>
+              <option>April</option><option>May</option><option>June</option>
+              <option>July</option><option>August</option><option>September</option>
+              <option>October</option><option>November</option><option>December</option>
+            </select>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Date</th>
+                  <th>Income</th>
+                  <th>Expense</th>
+                  <th>Profit</th>
+                  <th>Category</th>
+                  <th>Note</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="records-tbody">
+                <tr><td colspan="8"><div class="empty-state">
+                  <div class="empty-icon">⏳</div><p>Loading records...</p>
+                </div></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════
+         PAGE: SETUP GUIDE
+    ════════════════════════════════════════════════════ -->
+    <section class="page" id="page-setup">
+      <div class="page-header">
+        <h1>Setup Guide</h1>
+        <p>Connect FinTrack to Google Sheets in 5 easy steps</p>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div style="max-width:720px;line-height:1.85;font-size:.9rem;color:var(--text)">
+
+            <div class="section-title">Step 1 — Create Google Sheet</div>
+            <p>Go to <strong>sheets.google.com</strong> and create a new spreadsheet.
+              Copy the <strong>Spreadsheet ID</strong> from the URL:<br>
+              <code style="background:var(--gray-light);padding:3px 8px;border-radius:4px;font-family:monospace;font-size:.82rem">
+                https://docs.google.com/spreadsheets/d/<strong>YOUR_ID_HERE</strong>/edit
+              </code>
+            </p>
+
+            <div class="section-title" style="margin-top:24px">Step 2 — Open Apps Script</div>
+            <p>In your Google Sheet → <strong>Extensions → Apps Script</strong>.<br>
+              Delete all existing code. Paste the entire contents of <code>appscript.gs</code>.<br>
+              Replace <code>YOUR_SPREADSHEET_ID_HERE</code> with your actual Sheet ID.</p>
+
+            <div class="section-title" style="margin-top:24px">Step 3 — Run Setup Once</div>
+            <p>In the Apps Script editor, select the function <code>setupSpreadsheet</code>
+              from the dropdown and click <strong>▶ Run</strong>.
+              This creates all 12 month tabs automatically.</p>
+
+            <div class="section-title" style="margin-top:24px">Step 4 — Deploy as Web App</div>
+            <p>Click <strong>Deploy → New Deployment → Web App</strong>.<br>
+              Set <strong>Execute as: Me</strong> and <strong>Who has access: Anyone</strong>.<br>
+              Click <strong>Deploy</strong> and copy the Web App URL.</p>
+
+            <div class="section-title" style="margin-top:24px">Step 5 — Connect Frontend</div>
+            <p>Open <code>script.js</code> and replace:<br>
+              <code style="background:var(--gray-light);padding:3px 8px;border-radius:4px;font-family:monospace;font-size:.82rem">
+                const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+              </code><br>
+              …with your actual Web App URL. Save and reload the page. Done! 🎉</p>
+
+            <div class="section-title" style="margin-top:24px">Google Sheets Structure</div>
+            <p>Each month tab has these columns:</p>
+            <div style="overflow-x:auto;margin-top:10px">
+              <table style="font-size:.8rem">
+                <thead>
+                  <tr>
+                    <th>A: ID</th><th>B: Date</th><th>C: Income</th>
+                    <th>D: Expense</th><th>E: Profit</th>
+                    <th>F: Category</th><th>G: Note</th><th>H: Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>ABC12345</td><td>2025-06-01</td><td>5000</td>
+                    <td>1200</td><td>3800</td><td>ZEPETO</td><td>June sales</td><td>ISO string</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════════════════ -->
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="delete-modal" onclick="if(event.target===this)closeModal('delete-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Delete Record</h3>
+      <button class="modal-close" onclick="closeModal('delete-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-icon">🗑️</div>
+      <p class="confirm-msg">Are you sure you want to delete this record?</p>
+      <p class="confirm-name" id="delete-record-info"></p>
+      <p style="text-align:center;font-size:.8rem;color:var(--danger)">This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn btn-danger" onclick="executeDelete()">🗑️ Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOADER
+═══════════════════════════════════════════════════════════ -->
+<div class="loader-overlay" id="loader-overlay">
+  <div class="spinner"></div>
+  <p class="loader-text" id="loader-text">Loading...</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOAST CONTAINER
+═══════════════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- Scripts -->
+<script src="script.js"></script>
+
+<script>
+// Inline extras: today stats & cancel function exposed to HTML
+document.addEventListener('DOMContentLoaded', () => {
+  // Expose cancelEdit for HTML button
+  window.cancelEdit = () => {
+    document.getElementById('record-form').reset();
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('profit-preview').textContent = '฿0.00';
+    document.getElementById('profit-preview').className = 'profit-value pos';
+    window.editingRecord = null;
+    document.getElementById('btn-cancel-edit').style.display = 'none';
+    document.getElementById('form-submit-btn').textContent = '💾 Save Record';
+    document.getElementById('form-heading').textContent = 'Add New Record';
+  };
+
+  // Update today stats whenever records change
+  function refreshTodayStats() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayData = (window.appData || []).filter(r => r.date === today);
+    const inc = todayData.reduce((s,r) => s + r.income,  0);
+    const exp = todayData.reduce((s,r) => s + r.expense, 0);
+    const pft = todayData.reduce((s,r) => s + r.profit,  0);
+    const fmt = n => '฿' + (+n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const ti = document.getElementById('today-income');
+    const te = document.getElementById('today-expense');
+    const tp = document.getElementById('today-profit');
+    if (ti) ti.textContent = fmt(inc);
+    if (te) te.textContent = fmt(exp);
+    if (tp) {
+      tp.textContent = fmt(pft);
+      tp.style.color = pft >= 0 ? 'var(--success)' : 'var(--danger)';
+    }
+  }
+
+  // Poll for state changes every 2s (lightweight since it's in-memory)
+  setInterval(refreshTodayStats, 2000);
+  setTimeout(refreshTodayStats, 1500);
+});
+</script>
+
+</body>
+</html>
